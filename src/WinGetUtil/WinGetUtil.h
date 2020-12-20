@@ -68,6 +68,11 @@ extern "C"
     WINGET_UTIL_API WinGetSQLiteIndexPrepareForPackaging(
         WINGET_SQLITE_INDEX_HANDLE index);
 
+    // Checks the index for consistency, ensuring that at a minimum all referenced rows actually exist.
+    WINGET_UTIL_API WinGetSQLiteIndexCheckConsistency(
+        WINGET_SQLITE_INDEX_HANDLE index,
+        BOOL* succeeded);
+
     // Validates a given manifest. Returns a bool for validation result and
     // a string representing validation errors if validation failed.
     WINGET_UTIL_API WinGetValidateManifest(
@@ -81,4 +86,10 @@ extern "C"
         WINGET_STRING filePath,
         BYTE* sha256Hash,
         UINT32 sha256HashLength);
+
+    // Compares two version strings, returning -1 if versionA is less than versionB, 0 if they're equal, or 1 if versionA is greater than versionB
+    WINGET_UTIL_API WinGetCompareVersions(
+        WINGET_STRING versionA,
+        WINGET_STRING versionB,
+        INT* comparisonResult);
 }

@@ -3,9 +3,9 @@
 #include "pch.h"
 #include "ExecutionProgress.h"
 
-
 namespace AppInstaller::CLI::Execution
 {
+    using namespace Settings;
     using namespace VirtualTerminal;
     using namespace std::string_view_literals;
 
@@ -133,12 +133,14 @@ namespace AppInstaller::CLI::Execution
     {
         void ProgressVisualizerBase::ApplyStyle(size_t i, size_t max, bool enabled)
         {
+            if (!UseVT())
+            {
+                // Either no style set or VT disabled
+                return;
+            }
             switch (m_style)
             {
-            case AppInstaller::CLI::Execution::VisualStyle::NoVT:
-                // No VT means no style set
-                break;
-            case AppInstaller::CLI::Execution::VisualStyle::Plain:
+            case VisualStyle::Retro:
                 if (enabled)
                 {
                     m_out << TextFormat::Default;
@@ -148,10 +150,10 @@ namespace AppInstaller::CLI::Execution
                     m_out << TextFormat::Negative;
                 }
                 break;
-            case AppInstaller::CLI::Execution::VisualStyle::Accent:
+            case VisualStyle::Accent:
                 SetColor(m_out, TextFormat::Color::GetAccentColor(), enabled);
                 break;
-            case AppInstaller::CLI::Execution::VisualStyle::Rainbow:
+            case VisualStyle::Rainbow:
                 SetRainbowColor(m_out, i, max, enabled);
                 break;
             default:

@@ -42,7 +42,7 @@ Name: MSIX SDK
 AppMoniker: msixsdk
 
 # Version is a required field.  It is the specific version of this copy of the application.
-# Versions should be separated by a period, but we will support other deliminators.
+# Versions should be separated by a period, but we will support other delimiters.
 # Versions should be limited to four fields: Major.Minor.Build.Update.
 # Versions will be sorted as integers following the following pattern: Major.Minor.Build.Patch.
 # Restrictions: 4 sections with max value of 65535.  For example:65535.65535.65535.65535
@@ -154,7 +154,7 @@ Switches:
 # if the installer supports log redirection, then the Log switch should be the flag that the installer expects to provide the path to the log 
 # file.  For example:  /LOG=<LOGPATH>.
 # Log must include the <LOGPATH> token.
-Log: /LOG=<LOGPATH> 
+  Log: /LOG=<LOGPATH> 
 
 # Some installers allow for installing to an alternate location.   A user may want to redirect the default install to a different location.  
 # In order to redirect the install location, the user will pass in a installation path to the installer.  For example: --installlocation "c:\mytool". 
@@ -162,7 +162,7 @@ Log: /LOG=<LOGPATH>
 # then the InstallLocation switch must be the flag that the installer expects to redirect the installation path.  
 # For example:  /InstallLocation=<INSTALLPATH>.
 # InstallLocation must include the <INSTALLPATH> token.
-InstallLocation: /DIR=<INSTALLPATH>
+  InstallLocation: /DIR=<INSTALLPATH>
 
 # ======================= Installers  ==================
 
@@ -204,16 +204,19 @@ Installers:
     # Scope is not supported in this preview (5/24/2020)
     Scope: user
   
-    # SystemAppId is a required field.  The value in the field differs depending on the InstallerType.
-    # For MSI it is the product code.  Typically a GUID that is typically found in the uninstall registry location and includes the brackets.
+   
+    # ProductCode will be used in upgrade scenarios and to locate the uninstall string to uninstall the application.
+    # For MSI there is an explicit product code.  Typically a GUID that is typically found in the uninstall registry location and includes the brackets.
     # For example:  {5740BD44-B58D-321A-AFC0-6D3D4556DD6C}
     # [HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\{3740BD44-B58D-321A-AFC0-6D3D4556DD6C}]
     # [HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\{3740BD44-B58D-321A-AFC0-6D3D4556DD6C}]
-    # The Package Manager will use that value to locate the uninstall string to uninstall the application.
-    # For inno, wix, nullsoft, and exe, the SystemAppId should be a string that is located in either of the Uninstall keys above. 
-    # For MSIX the SystemAppId should be the Package Family Name.  For example: Contoso.Toolbox.Finance_7wekyb3d8bbwe  
+    # For inno, wix, nullsoft, and exe, the ProductCode should be a string that is located in either of the Uninstall keys above. 
+    ProductCode: "{05321FDB-BBA2-497D-99C6-C440E184C043}"
+    
+    # PackageFamilyName will be used in upgrade scenarios and to locate the uninstall string to uninstall the application.
+    # MSIX installers have an explicit PackageFamilyName.  For example: Contoso.Toolbox.Finance_7wekyb3d8bbwe  
     # Restrictions: [min: 3, max:128] 
-    SystemAppId: {3740BD44-B58D-321A-AFC0-6D3D4556DD6C}
+    PackageFamilyName: Microsoft.WindowsTerminal_8wekyb3d8bbwe
 
     # Switches in installers can override the root specified switches. See definition earlier in this document.
     Switches:
@@ -258,7 +261,7 @@ Installers:
 ## Best Practices
 The Id must be unique.  You cannot have multiple submissions with the same Id.
 
-Avoid creating multiple publisher folders.  For example, do not create "Contoso Ltd." if there is already a "Contonso" folder.
+Avoid creating multiple publisher folders.  For example, do not create "Contoso Ltd." if there is already a "Contoso" folder.
 
 All tools must support a silent install.  If you have an executable that does not support a silent install, then we cannot provide that tool at this time.  Provide feedback to the repo.  If this is a restriction that you would like to see removed add an issue or up vote it.
 My installer supports a silent install, but is not one of the supported InstallerTypes.  How can I get it added to your repo.  Ping us on the repo.

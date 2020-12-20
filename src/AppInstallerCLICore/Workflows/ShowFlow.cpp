@@ -49,13 +49,23 @@ namespace AppInstaller::CLI::Workflow
         context.Reporter.Info() << "Installer:" << std::endl;
         if (installer)
         {
+            context.Reporter.Info() << "  Type: " << Manifest::ManifestInstaller::InstallerTypeToString(installer->InstallerType) << std::endl;
             if (!installer->Language.empty())
             {
                 context.Reporter.Info() << "  Language: " << installer->Language << std::endl;
             }
-            context.Reporter.Info() << "  SHA256: " << Utility::SHA256::ConvertToString(installer->Sha256) << std::endl;
-            context.Reporter.Info() << "  Download Url: " << installer->Url << std::endl;
-            context.Reporter.Info() << "  Type: " << Manifest::ManifestInstaller::InstallerTypeToString(installer->InstallerType) << std::endl;
+            if (!installer->Url.empty())
+            {
+                context.Reporter.Info() << "  Download Url: " << installer->Url << std::endl;
+            }
+            if (!installer->Sha256.empty())
+            {
+                context.Reporter.Info() << "  SHA256: " << Utility::SHA256::ConvertToString(installer->Sha256) << std::endl;
+            }
+            if (!installer->ProductId.empty())
+            {
+                context.Reporter.Info() << "  Store Product Id: " << installer->ProductId << std::endl;
+            }
         }
         else
         {
@@ -67,19 +77,19 @@ namespace AppInstaller::CLI::Workflow
     {
         const auto& manifest = context.Get<Execution::Data::Manifest>();
 
-        Execution::TableOutput<2> table(context.Reporter, { "Version", "Channel" });
+        Execution::TableOutput<2> table(context.Reporter, { Resource::String::ShowVersion, Resource::String::ShowChannel });
         table.OutputLine({ manifest.Version, manifest.Channel });
         table.Complete();
     }
 
     void ShowAppVersions(Execution::Context& context)
     {
-        auto app = context.Get<Execution::Data::SearchResult>().Matches.at(0).Application.get();
+        auto versions = context.Get<Execution::Data::Package>()->GetAvailableVersionKeys();
 
-        Execution::TableOutput<2> table(context.Reporter, { "Version", "Channel" });
-        for (auto& version : app->GetVersions())
+        Execution::TableOutput<2> table(context.Reporter, { Resource::String::ShowVersion, Resource::String::ShowChannel });
+        for (const auto& version : versions)
         {
-            table.OutputLine({ version.GetVersion().ToString(), version.GetChannel().ToString() });
+            table.OutputLine({ version.Version, version.Channel });
         }
         table.Complete();
     }

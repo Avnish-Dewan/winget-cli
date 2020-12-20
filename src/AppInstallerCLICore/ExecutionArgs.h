@@ -23,7 +23,7 @@ namespace AppInstaller::CLI::Execution
             Tag,
             Command,
             Source, // Index source to be queried against
-            Count, // Maximun query results
+            Count, // Maximum query results
             Exact, // Exact match required
 
             // Manifest selection behavior after an app is found
@@ -50,15 +50,24 @@ namespace AppInstaller::CLI::Execution
             //Validate Command
             ValidateManifest,
 
+            // Complete Command
+            Word,
+            CommandLine,
+            Position,
+
             // Other
+            All, // Used in Update command to update all installed packages to latest
             Force,      // Generic flag to enable a command to skip some check
             ListVersions, // Used in Show command to list all available versions of an app
             NoVT, // Disable VirtualTerminal outputs
-            PlainStyle, // Makes progress display as plain
+            RetroStyle, // Makes progress display as retro
             RainbowStyle, // Makes progress display as a rainbow
             Help, // Show command usage
             Info, // Show general info about WinGet
             VerboseLogs, // Increases winget logging level to verbose
+
+            // Used for demonstration purposes
+            ExperimentalArg,
         };
 
         bool Contains(Type arg) const { return (m_parsedArgs.count(arg) != 0); }
@@ -95,6 +104,21 @@ namespace AppInstaller::CLI::Execution
         void AddArg(Type arg, std::string value)
         {
             m_parsedArgs[arg].emplace_back(std::move(value));
+        }
+
+        void AddArg(Type arg, std::string_view value)
+        {
+            m_parsedArgs[arg].emplace_back(value);
+        }
+
+        bool Empty()
+        {
+            return m_parsedArgs.empty();
+        }
+
+        size_t GetArgsCount()
+        {
+            return m_parsedArgs.size();
         }
 
     private:

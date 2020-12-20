@@ -4,22 +4,15 @@
 
 #define NOMINMAX
 #include <windows.h>
+#include <shellapi.h>
 #include <WinInet.h>
-
-#include <winrt/Windows.Foundation.h>
-#include <winrt/Windows.Foundation.Collections.h>
-#include <winrt/Windows.Management.Deployment.h>
-#include <winrt/Windows.UI.ViewManagement.h>
-#include <winrt/Windows.ApplicationModel.Resources.h>
-#include <winrt/Windows.ApplicationModel.Resources.Core.h>
-
-#include <wil/result_macros.h>
 
 #include <array>
 #include <iostream>
 #include <fstream>
 #include <future>
 #include <functional>
+#include <iterator>
 #include <memory>
 #include <numeric>
 #include <optional>
@@ -27,11 +20,21 @@
 #include <string_view>
 #include <vector>
 
-#include <yaml-cpp\yaml.h>
+#include <winrt/Windows.Foundation.h>
+#include <winrt/Windows.Foundation.Collections.h>
+#include <winrt/Windows.Management.Deployment.h>
+#include <winrt/Windows.UI.ViewManagement.h>
+#include <winrt/Windows.ApplicationModel.Resources.h>
+#include <winrt/Windows.ApplicationModel.Resources.Core.h>
+#include <winrt/Windows.ApplicationModel.Store.Preview.InstallControl.h>
+
+#include <wil/result_macros.h>
+#include <wil/safecast.h>
 
 #include <wrl/client.h>
 #include <AppxPackaging.h>
 
+#include <AppInstallerArchitecture.h>
 #include <AppInstallerDateTime.h>
 #include <AppInstallerDeployment.h>
 #include <AppInstallerDownloader.h>
@@ -44,6 +47,6 @@
 #include <AppInstallerSHA256.h>
 #include <AppInstallerStrings.h>
 #include <AppInstallerTelemetry.h>
-#include <Manifest/ManifestInstaller.h>
-#include <Manifest/Manifest.h>
+#include <winget/ExperimentalFeature.h>
 #include <winget/LocIndependent.h>
+#include <winget/ManifestYamlParser.h>

@@ -33,6 +33,7 @@ namespace AppInstaller::Utility
     {
         LocIndString() = default;
 
+        explicit LocIndString(std::string_view sv) : m_value(sv) {}
         explicit LocIndString(std::string v) : m_value(std::move(v)) {}
 
         LocIndString(const LocIndString&) = default;
@@ -48,7 +49,9 @@ namespace AppInstaller::Utility
 
         const std::string* operator->() const { return &m_value; }
 
-        bool operator==(std::string_view sv) { return m_value == sv; }
+        bool operator==(std::string_view sv) const { return m_value == sv; }
+
+        bool operator<(const LocIndString& other) const { return m_value < other.m_value; }
 
     private:
         std::string m_value;

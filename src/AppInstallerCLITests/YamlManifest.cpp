@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 #include "pch.h"
 #include "TestCommon.h"
-#include "Manifest/Manifest.h"
-#include "AppInstallerSHA256.h"
+#include <AppInstallerSHA256.h>
+#include <winget/ManifestYamlParser.h>
 
 using namespace TestCommon;
 using namespace AppInstaller::Manifest;
@@ -30,7 +30,7 @@ bool operator==(const MultiValue& a, const MultiValue& b)
 
 TEST_CASE("ReadGoodManifestAndVerifyContents", "[ManifestValidation]")
 {
-    Manifest manifest = Manifest::CreateFromPath(TestDataFile("Manifest-Good.yaml"));
+    Manifest manifest = YamlParser::CreateFromPath(TestDataFile("Manifest-Good.yaml"));
 
     REQUIRE(manifest.Id == "microsoft.msixsdk");
     REQUIRE(manifest.Name == "MSIX SDK");
@@ -49,6 +49,9 @@ TEST_CASE("ReadGoodManifestAndVerifyContents", "[ManifestValidation]")
     REQUIRE(manifest.Protocols == MultiValue{ "protocol1", "protocol2" });
     REQUIRE(manifest.FileExtensions == MultiValue{ "appx", "appxbundle", "msix", "msixbundle" });
     REQUIRE(manifest.InstallerType == ManifestInstaller::InstallerTypeEnum::Zip);
+    REQUIRE(manifest.PackageFamilyName == "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe");
+    REQUIRE(manifest.ProductCode == "{Foo}");
+    REQUIRE(manifest.UpdateBehavior == ManifestInstaller::UpdateBehaviorEnum::UninstallPrevious);
 
     // default switches
     auto switches = manifest.Switches;
@@ -59,6 +62,7 @@ TEST_CASE("ReadGoodManifestAndVerifyContents", "[ManifestValidation]")
     REQUIRE(switches.at(ManifestInstaller::InstallerSwitchType::Language) == "/en-us");
     REQUIRE(switches.at(ManifestInstaller::InstallerSwitchType::Log) == "/log=<LOGPATH>");
     REQUIRE(switches.at(ManifestInstaller::InstallerSwitchType::InstallLocation) == "/dir=<INSTALLPATH>");
+    REQUIRE(switches.at(ManifestInstaller::InstallerSwitchType::Update) == "/update");
 
     // installers
     REQUIRE(manifest.Installers.size() == 2);
@@ -68,7 +72,10 @@ TEST_CASE("ReadGoodManifestAndVerifyContents", "[ManifestValidation]")
     REQUIRE(installer1.Sha256 == SHA256::ConvertToBytes("69D84CA8899800A5575CE31798293CD4FEBAB1D734A07C2E51E56A28E0DF8C82"));
     REQUIRE(installer1.Language == "en-US");
     REQUIRE(installer1.InstallerType == ManifestInstaller::InstallerTypeEnum::Zip);
-    REQUIRE(installer1.Scope == "user");
+    REQUIRE(installer1.Scope == ManifestInstaller::ScopeEnum::User);
+    REQUIRE(installer1.PackageFamilyName == "");
+    REQUIRE(installer1.ProductCode == "");
+    REQUIRE(installer1.UpdateBehavior == ManifestInstaller::UpdateBehaviorEnum::Install);
 
     auto installer1Switches = installer1.Switches;
     REQUIRE(installer1Switches.at(ManifestInstaller::InstallerSwitchType::Custom) == "/c");
@@ -78,6 +85,7 @@ TEST_CASE("ReadGoodManifestAndVerifyContents", "[ManifestValidation]")
     REQUIRE(installer1Switches.at(ManifestInstaller::InstallerSwitchType::Language) == "/en");
     REQUIRE(installer1Switches.at(ManifestInstaller::InstallerSwitchType::Log) == "/l=<LOGPATH>");
     REQUIRE(installer1Switches.at(ManifestInstaller::InstallerSwitchType::InstallLocation) == "/d=<INSTALLPATH>");
+    REQUIRE(installer1Switches.at(ManifestInstaller::InstallerSwitchType::Update) == "/u");
 
     ManifestInstaller installer2 = manifest.Installers.at(1);
     REQUIRE(installer2.Arch == Architecture::X64);
@@ -85,7 +93,10 @@ TEST_CASE("ReadGoodManifestAndVerifyContents", "[ManifestValidation]")
     REQUIRE(installer2.Sha256 == SHA256::ConvertToBytes("69D84CA8899800A5575CE31798293CD4FEBAB1D734A07C2E51E56A28E0DF0000"));
     REQUIRE(installer2.Language == "en-US");
     REQUIRE(installer2.InstallerType == ManifestInstaller::InstallerTypeEnum::Zip);
-    REQUIRE(installer2.Scope == "user");
+    REQUIRE(installer2.Scope == ManifestInstaller::ScopeEnum::User);
+    REQUIRE(installer2.PackageFamilyName == "");
+    REQUIRE(installer2.ProductCode == "");
+    REQUIRE(installer2.UpdateBehavior == ManifestInstaller::UpdateBehaviorEnum::UninstallPrevious);
 
     // Installer2 does not declare switches, it inherits switches from package default.
     auto installer2Switches = installer2.Switches;
@@ -96,6 +107,7 @@ TEST_CASE("ReadGoodManifestAndVerifyContents", "[ManifestValidation]")
     REQUIRE(installer2Switches.at(ManifestInstaller::InstallerSwitchType::Language) == "/en-us");
     REQUIRE(installer2Switches.at(ManifestInstaller::InstallerSwitchType::Log) == "/log=<LOGPATH>");
     REQUIRE(installer2Switches.at(ManifestInstaller::InstallerSwitchType::InstallLocation) == "/dir=<INSTALLPATH>");
+    REQUIRE(installer2Switches.at(ManifestInstaller::InstallerSwitchType::Update) == "/update");
 
     // Localization
     REQUIRE(manifest.Localization.size() == 1);
@@ -108,7 +120,7 @@ TEST_CASE("ReadGoodManifestAndVerifyContents", "[ManifestValidation]")
 
 TEST_CASE("ReadGoodManifestWithSpaces", "[ManifestValidation]")
 {
-    Manifest manifest = Manifest::CreateFromPath(TestDataFile("Manifest-Good-Spaces.yaml"));
+    Manifest manifest = YamlParser::CreateFromPath(TestDataFile("Manifest-Good-Spaces.yaml"));
 
     REQUIRE(manifest.Id == "microsoft.msixsdk");
     REQUIRE(manifest.Name == "MSIX SDK");
@@ -147,13 +159,14 @@ private:
 
 void TestManifest(const std::filesystem::path& manifestPath, const std::string& expectedMessage = {}, bool expectedWarningOnly = false)
 {
+    INFO(manifestPath.u8string());
     if (expectedMessage.empty())
     {
-        CHECK_NOTHROW(Manifest::CreateFromPath(TestDataFile(manifestPath), true, true));
+        CHECK_NOTHROW(YamlParser::CreateFromPath(TestDataFile(manifestPath), true, true));
     }
     else
     {
-        CHECK_THROWS_MATCHES(Manifest::CreateFromPath(TestDataFile(manifestPath), true, true), ManifestException, ManifestExceptionMatcher(expectedMessage, expectedWarningOnly));
+        CHECK_THROWS_MATCHES(YamlParser::CreateFromPath(TestDataFile(manifestPath), true, true), ManifestException, ManifestExceptionMatcher(expectedMessage, expectedWarningOnly));
     }
 }
 
@@ -225,10 +238,83 @@ TEST_CASE("ReadBadManifests", "[ManifestValidation]")
         { "Manifest-Bad-VersionInvalid.yaml", "Invalid field value. Field: Version" },
         { "Manifest-Bad-VersionMissing.yaml", "Required field missing. Field: Version" },
         { "Manifest-Bad-InvalidManifestVersionValue.yaml", "Invalid field value. Field: ManifestVersion" },
+        { "InstallFlowTest_MSStore.yaml", "Field value is not supported. Field: InstallerType Value: MSStore" },
+        { "Manifest-Bad-PackageFamilyNameOnMSI.yaml", "The specified installer type does not support PackageFamilyName. Field: InstallerType Value: Msi" },
+        { "Manifest-Bad-ProductCodeOnMSIX.yaml", "The specified installer type does not support ProductCode. Field: InstallerType Value: Msix" },
+        { "Manifest-Bad-InvalidUpdateBehavior.yaml", "Invalid field value. Field: UpdateBehavior" },
     };
 
     for (auto const& testCase : TestCases)
     {
         TestManifest(testCase.TestFile, testCase.ExpectedMessage, testCase.IsWarningOnly);
     }
+}
+
+TEST_CASE("ManifestEncoding", "[ManifestValidation]")
+{
+    ManifestTestCase TestCases[] =
+    {
+        { "Manifest-Encoding-ANSI.yaml" },
+        { "Manifest-Encoding-UTF8.yaml" },
+        { "Manifest-Encoding-UTF8-BOM.yaml" },
+        { "Manifest-Encoding-UTF16BE.yaml" },
+        { "Manifest-Encoding-UTF16BE-BOM.yaml" },
+        { "Manifest-Encoding-UTF16LE.yaml" },
+        { "Manifest-Encoding-UTF16LE-BOM.yaml" },
+    };
+
+    for (auto const& testCase : TestCases)
+    {
+        INFO(testCase.TestFile);
+        Manifest manifest = YamlParser::CreateFromPath(TestDataFile(testCase.TestFile), true, true);
+        REQUIRE(manifest.Name == u8"MSIX SDK\xA9");
+    }
+}
+
+TEST_CASE("ComplexSystemReference", "[ManifestValidation]")
+{
+    Manifest manifest = YamlParser::CreateFromPath(TestDataFile("Manifest-Good-SystemReferenceComplex.yaml"));
+
+    REQUIRE(manifest.Installers.size() == 5);
+
+    // Zip installer does not inherit
+    REQUIRE(manifest.Installers[0].InstallerType == ManifestInstaller::InstallerTypeEnum::Zip);
+    REQUIRE(manifest.Installers[0].PackageFamilyName == "");
+    REQUIRE(manifest.Installers[0].ProductCode == "");
+
+    // MSIX installer does inherit
+    REQUIRE(manifest.Installers[1].InstallerType == ManifestInstaller::InstallerTypeEnum::Msix);
+    REQUIRE(manifest.Installers[1].Arch == Architecture::X86);
+    REQUIRE(manifest.Installers[1].PackageFamilyName == "Microsoft.DesktopAppInstaller_8wekyb3d8bbwe");
+    REQUIRE(manifest.Installers[1].ProductCode == "");
+
+    // MSI installer does inherit
+    REQUIRE(manifest.Installers[2].InstallerType == ManifestInstaller::InstallerTypeEnum::Msi);
+    REQUIRE(manifest.Installers[2].Arch == Architecture::X86);
+    REQUIRE(manifest.Installers[2].PackageFamilyName == "");
+    REQUIRE(manifest.Installers[2].ProductCode == "{Foo}");
+
+    // MSIX installer with override
+    REQUIRE(manifest.Installers[3].InstallerType == ManifestInstaller::InstallerTypeEnum::Msix);
+    REQUIRE(manifest.Installers[3].Arch == Architecture::X64);
+    REQUIRE(manifest.Installers[3].PackageFamilyName == "Override_8wekyb3d8bbwe");
+    REQUIRE(manifest.Installers[3].ProductCode == "");
+
+    // MSI installer with override
+    REQUIRE(manifest.Installers[4].InstallerType == ManifestInstaller::InstallerTypeEnum::Msi);
+    REQUIRE(manifest.Installers[4].Arch == Architecture::X64);
+    REQUIRE(manifest.Installers[4].PackageFamilyName == "");
+    REQUIRE(manifest.Installers[4].ProductCode == "Override");
+}
+
+TEST_CASE("ManifestVersionExtensions", "[ManifestValidation]")
+{
+    REQUIRE(!ManifestVer("1.0.0"sv).HasExtension("msstore"));
+    REQUIRE(!ManifestVer("1.0.0-other"sv).HasExtension("msstore"));
+    REQUIRE(!ManifestVer("1.0.0-other-other2"sv).HasExtension("msstore"));
+
+    REQUIRE(ManifestVer("1.0.0-msstore"sv).HasExtension("msstore"));
+    REQUIRE(ManifestVer("1.0.0-msstore.2"sv).HasExtension("msstore"));
+    REQUIRE(ManifestVer("1.0.0-other-msstore.2"sv).HasExtension("msstore"));
+    REQUIRE(ManifestVer("1.0.0-msstore.2-other"sv).HasExtension("msstore"));
 }
